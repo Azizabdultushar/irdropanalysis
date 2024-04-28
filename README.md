@@ -1,6 +1,7 @@
-# irdropanalysis
+# SoC Generation process
+* CPU configuration + Custom gemmini configuration + Gemmini default configuration + SoC configuration
 ## Table of Contents
-1. [Advanced PnR process](#Advanced-PnR-process)
+1. [Environment setup](#Environment-setup)
 1. [Conformal Verification](#Conformal-Verification)
 1. [VERILOG](./verilog.md)
 1. [Basic liberty file .lib](./timing_lib_file.md#go-back)
@@ -24,6 +25,11 @@
 1. [FAQ](./FAQ.md#go-back)
 1. [Contributors/Collaborators](#contributorscollaborators)
 
+
+## Envrionment setup
+* 
+
+## 
 
 
 ## Advanced PnR process

@@ -1,0 +1,11 @@
+CMD: /eda/cadence/2022-23/RHELx86/SSV_22.11.000/tools.lnx86/ssvtools/bin/64bit/voltus_rail -nhbPort 39730 -procInfoHost item0110.item.uni-bremen.de:46531 -temp_directory_name /tmp/ssv_tmpdir_10462_Lo63nT -eps -clienttimeout 3600 -machine item0110.item.uni-bremen.de -port 37123 -hbPort -1 -id 0 
+CWD: /usrf07/home/agids/stu/s_ids118/program_ml/pr
+PID: 11263
+Host: item0110.item.uni-bremen.de
+Number of CPU(s): 24
+System total memory: 96674MB
+date_time max RSS memory(MB) RSS memory(MB) virtual memory(MB) shared memory(MB)
+2024-10-16 15:35:45 21 21 1498 15
+2024-10-16 15:35:55 542 295 3829 19
+2024-10-16 15:36:5 542 296 3829 20
+end

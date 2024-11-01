@@ -1,0 +1,131 @@
+#########################################################################################
+#                                                                                       #
+# Created by Genus(TM) Synthesis Solution 21.14-s082_1 on Tue Sep 10 23:07:49 CEST 2024 #
+#                                                                                       #
+#########################################################################################
+
+set_cpf_version 2.0
+
+set_hierarchy_separator "/"
+
+define_library_set  -name gpdk045_wc_hi_lib \
+	 -libraries { {/usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/slow_vdd1v2_basicCells.lib /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/slow_vdd1v2_basicCells_lvt.lib} /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/slow_vdd1v2_extvdd1v2.lib /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/slow_vdd1v2_extvdd1v0.lib /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/slow_vdd1v0_extvdd1v2.lib }
+
+define_library_set  -name gpdk045_wc_lo_lib \
+	 -libraries { {/usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/slow_vdd1v0_basicCells.lib /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/slow_vdd1v0_basicCells_lvt.lib} /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/slow_vdd1v0_extvdd1v0.lib /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/slow_vdd1v0_extvdd1v2.lib }
+
+define_library_set  -name gpdk045_bc_hi_lib \
+	 -libraries { {/usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/fast_vdd1v2_basicCells.lib /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/fast_vdd1v2_basicCells_lvt.lib} /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/fast_vdd1v2_extvdd1v2.lib /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/fast_vdd1v2_extvdd1v0.lib /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/fast_vdd1v0_extvdd1v2.lib }
+
+define_library_set  -name gpdk045_bc_lo_lib \
+	 -libraries { {/usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/fast_vdd1v0_basicCells.lib /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/fast_vdd1v0_basicCells_lvt.lib} /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/fast_vdd1v0_extvdd1v0.lib /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/Library/timing/fast_vdd1v0_extvdd1v2.lib }
+
+set_design ibex_core
+
+create_nominal_condition -name high \
+	 -voltage { 1.2 } \
+	 -ground_voltage { 0 } \
+	 -state on
+
+create_nominal_condition -name low \
+	 -voltage { 1 } \
+	 -ground_voltage { 0 } \
+	 -state on
+
+create_nominal_condition -name off \
+	 -voltage { 0 } \
+	 -ground_voltage { 0 } \
+	 -state off
+
+update_nominal_condition -name high \
+	 -library_set gpdk045_wc_hi_lib
+
+update_nominal_condition -name low \
+	 -library_set gpdk045_wc_lo_lib
+
+create_power_domain -name TOP \
+	 -default
+
+create_power_mode -name fast_mode \
+	 -default \
+	 -domain_conditions { TOP@high }
+
+create_power_mode -name eco_mode \
+	 -domain_conditions { TOP@low }
+
+update_power_mode -name fast_mode \
+	 -sdc_files fv/ibex_core/fv_map.fast_mode.sdc
+
+update_power_mode -name eco_mode \
+	 -sdc_files fv/ibex_core/fv_map.eco_mode.sdc
+
+create_power_nets \
+	 -nets { VDD } \
+	 -voltage 1.2
+
+create_ground_nets \
+	 -nets { VSS }
+
+update_power_domain -name TOP \
+	 -primary_power_net VDD \
+	 -primary_ground_net VSS
+
+create_global_connection \
+	 -net VDD \
+	 -pins { VDD } \
+	 -domain TOP
+
+create_global_connection \
+	 -net VSS \
+	 -pins { VSS } \
+	 -domain TOP
+
+create_operating_corner -name fast_wc_rc125 \
+	 -library_set { gpdk045_wc_hi_lib } \
+	 -process 1 \
+	 -voltage 1.08 \
+	 -temperature 125
+
+create_operating_corner -name fast_bc_rc0 \
+	 -library_set { gpdk045_bc_hi_lib } \
+	 -process 1 \
+	 -voltage 1.32 \
+	 -temperature 0
+
+create_operating_corner -name eco_wc_rc125 \
+	 -library_set { gpdk045_wc_lo_lib } \
+	 -process 1 \
+	 -voltage 0.9 \
+	 -temperature 125
+
+create_operating_corner -name eco_bc_rc0 \
+	 -library_set { gpdk045_bc_lo_lib } \
+	 -process 1 \
+	 -voltage 1.1 \
+	 -temperature 0
+
+create_analysis_view -name AV_fast_mode_wc_rc125_setup \
+	 -mode fast_mode \
+	 -domain_corners { TOP@fast_wc_rc125 }
+
+create_analysis_view -name AV_eco_mode_wc_rc125_setup \
+	 -mode eco_mode \
+	 -domain_corners { TOP@fast_wc_rc125 }
+
+create_analysis_view -name AV_fast_mode_wc_rc125_hold \
+	 -mode fast_mode \
+	 -domain_corners { TOP@fast_wc_rc125 }
+
+create_analysis_view -name AV_eco_mode_wc_rc125_hold \
+	 -mode eco_mode \
+	 -domain_corners { TOP@fast_wc_rc125 }
+
+create_analysis_view -name AV_fast_mode_bc_rc0_hold \
+	 -mode fast_mode \
+	 -domain_corners { TOP@fast_bc_rc0 }
+
+create_analysis_view -name AV_eco_mode_bc_rc0_hold \
+	 -mode eco_mode \
+	 -domain_corners { TOP@fast_bc_rc0 }
+
+end_design

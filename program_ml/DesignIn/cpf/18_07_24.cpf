@@ -1,0 +1,123 @@
+set_cpf_version 2.0
+set_hierarchy_separator /
+set_design ibex_core
+
+############################
+## Define WC library sets ##
+## SS/0.9*VDD/125C        ##
+############################
+define_library_set -name gpdk045_wc_hi_lib  -libraries {\
+ ../Library/timing/slow_vdd1v2_basicCells.lib \
+ ../Library/timing/slow_vdd1v2_extvdd1v2.lib \
+ ../Library/timing/slow_vdd1v2_extvdd1v0.lib \
+ ../Library/timing/slow_vdd1v0_extvdd1v2.lib \
+ ../Library/timing/slow_vdd1v2_basicCells_lvt.lib }
+
+define_library_set -name gpdk045_wc_lo_lib  -libraries {\
+ ../Library/timing/slow_vdd1v0_basicCells.lib \
+ ../Library/timing/slow_vdd1v0_extvdd1v0.lib \
+ ../Library/timing/slow_vdd1v0_extvdd1v2.lib \
+ ../Library/timing/slow_vdd1v0_basicCells_lvt.lib }
+ 
+############################
+## Define BC library sets ##
+##  FF/1.1*VDD/0C         ##
+############################
+define_library_set -name gpdk045_bc_hi_lib  -libraries {\
+ ../Library/timing/fast_vdd1v2_basicCells.lib \
+ ../Library/timing/fast_vdd1v2_extvdd1v2.lib \
+ ../Library/timing/fast_vdd1v2_extvdd1v0.lib \
+ ../Library/timing/fast_vdd1v0_extvdd1v2.lib \
+ ../Library/timing/fast_vdd1v2_basicCells_lvt.lib }
+
+define_library_set -name gpdk045_bc_lo_lib  -libraries {\
+ ../Library/timing/fast_vdd1v0_basicCells.lib \
+ ../Library/timing/fast_vdd1v0_extvdd1v0.lib \
+ ../Library/timing/fast_vdd1v0_extvdd1v2.lib \
+ ../Library/timing/fast_vdd1v0_basicCells_lvt.lib }
+
+############################
+## Defining Power Domains ##
+############################
+# default one, always on
+create_power_domain -name TOP -default -boundary_ports *
+
+
+#################################
+### Defining Power/Ground Nets ##
+#################################
+create_power_nets  -nets VDD -voltage {1.2}
+create_ground_nets -nets VSS
+
+update_power_domain -name TOP -primary_power_net VDD -primary_ground_net VSS
+
+create_global_connection -net VDD -pins VDD -domain TOP
+create_global_connection -net VSS -pins VSS -domain TOP
+
+
+##############################
+## Define Nominal Condition ##
+##############################
+
+create_nominal_condition -name high -voltage 1.2 -state on
+update_nominal_condition -name high -library_set gpdk045_wc_hi_lib
+create_nominal_condition -name low  -voltage 1.0 -state on
+update_nominal_condition -name low  -library_set gpdk045_wc_lo_lib
+create_nominal_condition -name off  -voltage 0.0 -state off
+
+#######################
+## Define Power Mode ##
+#######################
+
+create_power_mode -name fast_mode  -domain_conditions { TOP@high } -default
+update_power_mode -name fast_mode  -sdc_files "../DesignIn/sdc/soc_fastmode.sdc"
+create_power_mode -name eco_mode   -domain_conditions { TOP@low }   
+update_power_mode -name eco_mode   -sdc_files "../DesignIn/sdc/soc_ecomode.sdc"
+
+#############################
+## Define Operation Corner ##
+#############################
+
+create_operating_corner -name fast_wc_rc125   -library_set gpdk045_wc_hi_lib  -process 1  -voltage 1.08   -temperature 125
+create_operating_corner -name fast_bc_rc0   -library_set gpdk045_bc_hi_lib  -process 1  -voltage 1.32   -temperature 0
+create_operating_corner -name eco_wc_rc125    -library_set gpdk045_wc_lo_lib  -process 1  -voltage 0.9    -temperature 125
+create_operating_corner -name eco_bc_rc0     -library_set gpdk045_bc_lo_lib  -process 1  -voltage 1.1    -temperature 0
+
+##########################
+## Define Analysis View ##
+##########################
+## SETUP ##
+create_analysis_view -name AV_fast_mode_wc_rc125_setup      -mode fast_mode  -domain_corners {TOP@fast_wc_rc125}
+create_analysis_view -name AV_eco_mode_wc_rc125_setup       -mode eco_mode   -domain_corners {TOP@fast_wc_rc125}
+
+## HOLD ##
+create_analysis_view -name AV_fast_mode_wc_rc125_hold       -mode fast_mode  -domain_corners {TOP@fast_wc_rc125}
+create_analysis_view -name AV_eco_mode_wc_rc125_hold 	    -mode eco_mode   -domain_corners {TOP@fast_wc_rc125}
+
+create_analysis_view -name AV_fast_mode_bc_rc0_hold 	    -mode fast_mode  -domain_corners {TOP@fast_bc_rc0}
+create_analysis_view -name AV_eco_mode_bc_rc0_hold 	    -mode eco_mode   -domain_corners {TOP@fast_bc_rc0}
+
+
+###############################
+## Define Power Switch cells ##
+###############################
+
+##########################
+## Define Level Shifter ##
+##########################
+
+############################
+## Define Isolation cells ##
+############################
+
+##########################
+## Desfine Retention FF ##
+##########################
+
+
+#############################
+## Define AON Buffer cells ##
+#############################
+
+
+end_design

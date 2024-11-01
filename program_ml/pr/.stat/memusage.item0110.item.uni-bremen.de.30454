@@ -1,0 +1,11 @@
+CMD: /eda/cadence/2022-23/RHELx86/SSV_22.11.000/tools.lnx86/ssvtools/bin/64bit/voltus_rail -nhbPort 46835 -procInfoHost item0110.item.uni-bremen.de:38714 -temp_directory_name /tmp/ssv_tmpdir_29804_k6J5yS -eps -clienttimeout 3600 -machine item0110.item.uni-bremen.de -port 36939 -hbPort -1 -id 0 
+CWD: /usrf06/home/agids/stu/s_ids118/Project_wi23_24/Final_45nm_test/Ibex/pr
+PID: 30454
+Host: item0110.item.uni-bremen.de
+Number of CPU(s): 24
+System total memory: 96674MB
+date_time max RSS memory(MB) RSS memory(MB) virtual memory(MB) shared memory(MB)
+2024-10-2 4:18:12 21 21 1498 15
+2024-10-2 4:18:22 22 22 1501 15
+2024-10-2 4:18:32 542 295 3829 19
+end

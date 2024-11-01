@@ -1,0 +1,5 @@
+       SOFTINCLUDE /imec/software/cadence/GPDK/GPDK045/gpdk045_v_4_0/cds.lib
+       SOFTINCLUDE /imec/software/cadence/GPDK/GPDK045/lan/flow/t1u1/reference_libs/GPDK045/gsclib045_svt_v4.4/gsclib045_tech/cds.lib
+           SOFTINCLUDE /imec/software/cadence/GPDK/GPDK045/lan/flow/t1u1/reference_libs/GPDK045/gsclib045_svt_v4.4/gsclib045/cds.lib
+
+

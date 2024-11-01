@@ -1,0 +1,22 @@
+ 
+Manual to run the program for ML data acquisition.
+
+First go to the directory ~/program_ml
+
+copy your rtl netlist file to ~/program_ml/DesignIn/netlist
+copy your sdc file to ~/program_ml/DesignIn/sdc
+
+Go to the directory ~/program_ml/pr/
+
+you will get a Makefile
+
+your current directory should be ~/program_ml/pr/
+
+write on your terminal
+      $ make clean_parameter
+      $ make generation
+      $ make clean-used-parameter
+      $ make placeandroute            # this is for just one design
+      $ make repeat                   # design according to all 
+      
+by default I have been used Ibex (risc-v core)

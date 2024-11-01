@@ -1,0 +1,137 @@
+#!/bin/bash
+
+# Number of scripts to generate
+num_scripts=10
+
+setup_tcl_dir="./scripts/automation_script/generated_tcl_parameter"
+mkdir -p "$setup_tcl_dir"
+
+# Copyright information
+copyright=$(cat <<'EOF'
+#----------------------------------------------------------------------------#
+# Copyright (c) 2024, [ABDUL AZIZ, UNIVERSITÄT BREMEN]. All rights reserved.
+#----------------------------------------------------------------------------#
+global vars
+set vars(version) 16.2.0
+set defHierChar /
+EOF
+)
+
+# Generate unique directory paths
+generate_common_script2() {
+    local unique_dir=$1
+    cat <<EOF
+
+file mkdir ../DesignOut/$unique_dir/RPT_FP
+file mkdir ../DesignOut/$unique_dir/RPT_PL
+file mkdir ../DesignOut/$unique_dir/RPT_CTS
+file mkdir ../DesignOut/$unique_dir/RPT_RT
+file mkdir ../DesignOut/$unique_dir/RPT_OpRT
+file mkdir ../DesignOut/$unique_dir
+file mkdir  ../DesignOut/$unique_dir/voltus_data_In
+file mkdir  ../DesignOut/$unique_dir/pp
+file mkdir  ../DesignOut/$unique_dir/IRDrop
+
+set vars(script_root)                              ../SCRIPTS
+set vars(dbs_dir)                                  ../DesignOut/$unique_dir
+set vars(rpt_dir_fp)                               ../DesignOut/$unique_dir/RPT_FP
+set vars(rpt_dir_Pl)                               ../DesignOut/$unique_dir/RPT_PL
+set vars(rpt_dir_cts)                              ../DesignOut/$unique_dir/RPT_CTS
+set vars(rpt_dir_rt)                               ../DesignOut/$unique_dir/RPT_RT
+set vars(rpt_dir_oprt)                             ../DesignOut/$unique_dir/RPT_OpRT
+set vars(irdrop_data_input) 			   ../DesignOut/$unique_dir/voltus_data_In
+set vars(power_pad_dir) 			   ../DesignOut/$unique_dir/pp
+set vars(IRDrop)                                   ../DesignOut/$unique_dir/IRDrop
+
+EOF
+}
+
+# Common content 1
+common_script1=$(cat <<'EOF'
+
+set vars(design)          ibex_core
+set vars(netlist)         "../syn/results/netlist_ibex_core.v"
+set vars(cpf_file)          "../DesignIn/cpf/18_07_24.cpf"
+set coretoleft 20
+set coretoright 20
+set coretotop 20
+set coretobottom 20  
+set offset 5.05
+set width_vdd 2.3
+set layer_vdd M5
+set width_vss 2.3
+set layer_vss M6
+set width_ring 1
+set space_ring 1
+set offset_ring 1
+set vars(lef_files)          "
+ ../Library/lef/gsclib045_tech.lef ../Library/lef/gsclib045_macro.lef ../Library/lef/gsclib045_hvt_macro.lef ../Library/lef/gsclib045_lvt_macro.lef
+"
+EOF
+)
+
+# Function to generate random floating point numbers
+random_float() {
+    min=$1
+    max=$2
+    echo "scale=2; $min + ($RANDOM / 32767) * ($max - $min)" | bc
+}
+
+# Function to generate random integer numbers
+random_int() {
+    min=$1
+    max=$2
+    echo $((min + RANDOM % (max - min + 1)))
+}
+
+# Generate TCL scripts with random parameters and unique directories
+for i in $(seq 1 $num_scripts); do
+
+    # Generate random parameters
+    aspect_ratio_H_W=$(random_float 0.8 1.0)
+    core_utilization=$(random_float 0.5 1.0)
+    set2set=$(random_int 10 20)
+    space=$(random_int 10 20)
+    single_stripe_width=$(random_float 1.8 3.5)
+    single_stripe_space=$(random_float 1.8 3.5)
+    single_offset=$(random_int 50 90)
+
+    # Unique directory name for this script
+    unique_dir="run_dir_$i"
+
+    # Name of the TCL script
+    script_name="$setup_tcl_dir/setup$i.tcl"
+
+    # Generate the script one by one
+    cat <<EOF > "$script_name"
+
+
+$copyright
+# cadence result directories for final result
+$(
+    generate_common_script2 "$unique_dir"
+)
+$common_script1
+# variable parameters are here
+set aspect_ratio_H_W $aspect_ratio_H_W
+set core_utilization $core_utilization
+set set2set $set2set
+set space $space
+set single_stripe_width $single_stripe_width
+set single_stripe_space $single_stripe_space
+set single_offset $single_offset
+
+#All rights reserved.
+
+EOF
+
+    echo "Generated $script_name."
+done
+
+echo "Generated $num_scripts TCL scripts in '$setup_tcl_dir' directory."
+
+echo "Generation successful."
+
+
+
+##############################################################################

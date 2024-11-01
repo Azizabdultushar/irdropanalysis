@@ -1,0 +1,577 @@
+# -*- mode: org; -*-
+# -*- org-export-babel-evaluate: nil -*-
+
+#+TITLE: Automated Data Acquisition Program for Static IRDrop in Preparation for ML Applications
+#+AUTHOR: Abdul Aziz
+#+DATE: \today
+#+EMAIL: azizab@uni-bremen.de
+
+# LaTeX class and options for title page formatting
+#+LATEX_CLASS: article
+#+LATEX_CLASS_OPTIONS: [12pt, titlepage]
+#+LATEX_HEADER: \usepackage{array}
+#+LATEX_HEADER: \usepackage{graphicx}
+#+LATEX_HEADER: \usepackage{titling}
+#+LATEX_HEADER: \usepackage{geometry}
+#+LATEX_HEADER: \geometry{a4paper, top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+#+LATEX_HEADER: \setlength{\droptitle}{-5cm}
+
+#+LATEX_HEADER: \usepackage[style=apa]{biblatex}
+#+LATEX_HEADER: \addbibresource{references.bib}
+
+
+# Custom LaTeX title page
+#+LATEX_HEADER: \renewcommand{\maketitle}{
+#+LATEX_HEADER:   \begin{titlepage}
+#+LATEX_HEADER:     \centering
+#+LATEX_HEADER:     \includegraphics[height=1.5cm]{logo_ub_2021.png} \hfill \includegraphics[height=0.75cm]{logo_item_ids.png}\\[0.5cm]
+#+LATEX_HEADER:     {\LARGE \\[1.5cm] \textbf{UNIVERSITY OF BREMEN}}\\[0.5cm]
+#+LATEX_HEADER:     {\large Fachbereich 01 - Physik/Elektrotechnik}\\[0.3cm]
+#+LATEX_HEADER:     ITEM Integrated Digital Systems\\[3cm]
+#+LATEX_HEADER:     {\LARGE \textbf{\thetitle}}\\[2cm]
+#+LATEX_HEADER:     Presented by\\[0.5cm]
+#+LATEX_HEADER:     {\LARGE \theauthor}\\[0.1cm]
+#+LATEX_HEADER:     \texttit{Matriculation no. 6088190}\\[2cm]
+#+LATEX_HEADER:     Under the supervision of\\[0.5cm]
+#+LATEX_HEADER:     {\LARGE Prof. Dr.-Ing. Alberto García-Ortiz}\\[5.8cm]
+#+LATEX_HEADER:     Bremen \hfill \thedate \\[0.2cm]l
+#+LATEX_HEADER:   \end{titlepage}
+#+LATEX_HEADER: }
+
+#+bibliography: references.bib
+
+#+LATEX: \newpage
+
+# Enable List of Figures on a separate page
+#+LATEX: \listoffigures
+
+
+# Options for LaTeX export
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:nil arch:headline
+#+OPTIONS: author:t c:nil creator:comment d:(not "LOGBOOK") date:t
+#+OPTIONS: e:t email:nil f:t inline:t num:t p:nil pri:nil stat:t
+#+OPTIONS: tags:t tasks:t tex:t timestamp:t toc:nil todo:t |:t toc:t  # Enable toc in options
+
+
+#+LATEX: \newpage
+# Begin the main sections of your document
+
+
+* Introduction
+
+Digital design increasingly focuses on enhancing transistor density, operating frequency, area, and power supply. Consequently, the susceptibility to power supply noise has risen significantly, impacting chip performance and leading to issues such as signal integrity problems and delays. The on-chip power distribution network (PDN) plays a crucial role in determining the overall quality of modern SOCs, influencing key aspects like performance (IR drop, timing), area, and cost (routability, layout density, metal stack). Designing an optimal power grid that remains robust across various operating scenarios continues to be a major challenge.
+
+
+This challenge has intensified as technology nodes shrink, packing more performance into smaller areas from one generation to the next. In the figure 01, metal layer 8,7,6 are the high layers used for power and ground.After that by using different via the power goes to cells.
+
+#+CAPTION: Illustration of a typical on-chip PDN structure [4].
+#+NAME:   fig:SED-HR401
+[[./img/pdn_inc.png]]
+
+
+Today, SOC physical implementation demands multiple iterations involving PDN design, IR analysis, and updates to the floorplan/placement. To meet IR drop requirements, a denser power grid is often necessary .
+
+There are three main types of IR drop analysis:
+1. **Static Voltage Drop Analysis**: This method is performed in the early design stages and provides an average estimate of IR drop.
+2. **Dynamic Voltage Drop Vector-based Analysis**: This method captures the real switching activity of logic gates and is considered the most accurate IR drop analysis.
+3. **Dynamic Voltage Drop Vectorless Analysis**: This method estimates voltage drop based on the toggle rate of transistors, with transistor activity sometimes predicted by tools.
+
+The report is divided into five chapters, followed by a general conclusion:
+- **Chapter 2** provides a review of the state of the art, explaining the fundamental concepts of power distribution networks (PDN), VLSI physical design implementation, voltage drop, and power dissipation.
+- **Chapter 3** discusses IR drop from a theoretical perspective, highlighting hotspots.
+- **Chapter 4** outlines the project objectives, the framework of the automated program, and the user manual.
+- **Chapter 5** presents the parameters, results, data visualization, and analysis report.
+- **Chapter 6** discusses the program experimental flow, compiled graph and the sellection of best PDN structure.
+
+#+LATEX: \newpage
+
+* State of Art
+
+** Evolution of Digital Computers and VLSI Technology
+
+The development of digital computing began with the construction of the first programmable, general-purpose electronic computer, ENIAC, in 1945. ENIAC was an enormous machine, occupying a 15 by 9 meter basement at the Moore School of the University of Pennsylvania. It consisted of 40 panels arranged in a U-shape along three walls, and featured more than 17,000 vacuum tubes, 70,000 resistors, 10,000 capacitors, 6,000 switches, and 1,500 relays—making it the most complex electronic system built at that time. ENIAC consumed 174 kilowatts of power and generated an equivalent amount of heat. It was capable of executing up to 5,000 additions per second, which was several orders of magnitude faster than its electromechanical predecessors.
+
+The innovation of the point-contact transistor in 1947 revolutionized computing. By 1954, the first computer incorporating 800 transistors and 10,000 germanium crystal rectifiers was built, drastically reducing power consumption to just 100 watts. The invention of the integrated circuit (IC) in 1958 marked the birth of modern VLSI (Very-Large-Scale Integration) technology, enabling the integration of billions of transistors onto a single silicon die.
+
+VLSI technology has enabled the design of both generic and application-specific integrated circuits (ASICs), with modern chips containing billions or even trillions of transistors. These advancements have driven the development of System-on-Chip (SoCs), faster processors, and cutting-edge communication technologies. A prime example of the power of modern VLSI is the AMD Ryzen 9 7945HX, a chip with 58 billion transistors, built on 5nm node technology with a die area of 178mm², and consuming only 55 watts of power.
+
+** Impact of VLSI on Modern Computing
+
+Before the rapid advancements in VLSI technology, most integrated circuits and processors could only handle a limited number of operations due to restricted logic and instruction sets. However, with the evolution of VLSI, it has become possible to design circuits that deliver optimal performance tailored to industry requirements. Modern designs incorporate billions of standard cells, I/O pins, macros, analog IPs, phase-locked loops (PLLs), data generators, and various other components. 
+
+This trend in semiconductor technology was first noted by Gordon E. Moore in 1965, who formulated Moore’s Law: the number of transistors in a microchip doubles approximately every two years, while the cost of computing is halved. However, as process nodes have shrunk to the nanometer scale, the complexities of manufacturing and design have increased to the point where Moore’s Law is losing relevance. Despite these challenges, modern electronic design automation (EDA) tools—developed by companies like Cadence Design Systems® and Synopsys—allow engineers to design chips that meet strict performance, power, and portability requirements.
+
+** Physical Design in VLSI
+
+Physical design is the process of transforming the logical functionality of a design, represented as gate-level RTL (register-transfer level), into a physical layout (GDSII) that can be manufactured. The physical design process involves several steps, each of which is crucial to ensuring that the final product meets performance goals, area constraints, and power efficiency targets.
+
+** Need for Physical Design
+
+Modern integrated circuits (ICs) contain millions, or even billions, of transistors, which are interconnected with complex logic. These circuits must be optimized for power, performance, timing, and area to ensure maximum efficiency. Manually optimizing the placement and routing of components is an overwhelming task due to the complexity of the designs. Automation in the EDA industry is, therefore, essential to handle these challenges. A well-structured and robust physical design flow accelerates time to market and enhances overall productivity.
+
+**Key Stages of Physical Design**
+
+In figure 2, the flow chart shows the flow of the physical design and verificaion process. Physical design is a multi-faceted process, which is broken down into several sequential steps to simplify the workflow:
+
+1. **Partitioning**
+   
+2. **Floor Planning**
+
+3. **Power Planning**
+
+4. **Placement**
+
+5. **Clock Tree Synthesis (CTS)**
+
+6. **Routing**
+
+7. **Timing Closure**
+
+
+#+CAPTION: General VLSI design flow using Computer Aided design(CAD) tools [2].
+#+NAME:   fig:SED-HR4002
+[[./img/flow.png]]
+
+
+
+#+LATEX: \newpage
+* Implementation
+
+Physical design convertes given input netlist into layout (GDSII) form. VLSI design process is generally devided into two broad categories: front end and back end. Front end deals with logic design while backend deals with converting given logic design into GDSII file which can be given as input to foundary.
+
++ Front end
+  - RTL designing
+RTL design is basically a code describing required functionality with use of logical elements used for digital design. This code are designed with HDL like VHDL, Verilog.
+  - Functional verification
+Functional verification of HDL description have become more challenging then designing itself as technology improved. UVM, OVM are general methodologies developed to test digital designs efficiently. Generally system Verilog is used to program testbench.
+  - Synthesis of RTL netlist
+Generic design described with HDL is converted into technology specific gate level netlist.
+
++ Back end
+  - Physical design 
+Physical design is the process which converts gate level netlist into manufacturable GDS. It is a complex process and consist of many stages like florrplanning, power planning,placement, clock tree synthesis, routing, logical equivalence checks, physical verification and mask data generation.
+
+As process nodes are shrinking, design process is becoming more challenging. Here, regular design techniques are described in physical design domain.
+
+** Synthesis
++ Synthesis is process to convert given RTL netlist into technology specific gate-level netlist. Required inputs for logical synthesis are: library information, RTL netlist file and SDC constraint file. For physical synthesis DEF file is also required for placement information.
+
++ Here is the flow for the RTL synthesis.There There are various intermediate stages involved in this process which are disussed here. They are listed here as: library reading, netlist reading, SDC reading, elaboration, initial synthesis, incremental synthesis, report generation, sdc generation and netlist generation.With given inputs we might add extra constraints as per requirement.
+
+syntax analysis > Library Definition > Elaboration and Binding > Contraint Definition > Pre-mapping Optimization > Technology Mapping > Post-mapping Optimization > report and export.
+
+** Place and Route
+Place and route is process to convert synthesized netlist into detailed physical layout in form of GDS file. Its’ inputs are: Netlist, SDC, Timing analysis view definition file and various library files (lef, lib,qrcTech, layermap files) Based on information from synthesis output and reports; area estimation, uncertainty value, additional constraints are defined.
+
+
++ Design Import
+All the inputs are defined at this stage. Setup is done, design contents are saved.
++ Floorplan
+In floorplaning area, aspect ratio, shape of core, placement of IP and memories, pin placement, blockages are defined. Area is estimated from synthesis reports as per required utilization. Shape of block is based on various factors like requirement from top block, pin assignment requirements, connectivity of cells and blocks.
+
+#+CAPTION: The design flow and the floorplanning steps 
+#+NAME:   fig:SED-HR4003
+[[./img/floorplan.png]]
+
++ Power plan
+• In IC design, it is required to route power nets to each and every standard cell and macro. We need to ensure that powr planning is robust with low IR drop. Good power planning is required for overall performance of IC.
+• If IR drop is high than cell timing performance degrades, also static power consumption increases. This causes low battery life and bad timing performance.
+• Generally nowadays bumps are used as to provide signals to design. Bumps are created with highest metal layer available. From these bumps, power is routed to lower metal layers with striped and vias. 
+
++ Placement
+▪ After macro placement, powerplanning, physical cell placement standard cells are placed. To reduce area reuirement power reils are shared. Cells are flipped between rows. 
+
++ Clock tree synthesis
+The SDC (Synopsys design constraits) is used to define timing constraints for the flow. Additionally, clocks and their periods are defined. Typically, the main clock is used for the entire design, but for example, accelerators and programming hardware, such as JTAG, need a slower clock to be defined. This constraint file is utilized for the clock tree synthesis. The CTS steps synthesizes a clock tree which is balanced as possible.
+
+#+CAPTION: Example of Optimization-Routing view of Rocket core (RISC-V)
+#+NAME:   fig:SED-HR4004
+[[./img/routing.png]]
+
++ Route and post-route
+In the perspective of the design scripts, the routing of the design was largely left to the design software. Though the “design routing rules” step in, floorplannig configures some set of rules for the router. The blockages created for the power mesh in the floorplanning can be utilized to block routing in certain areas of the floorplan during this step. After routing, a post-optimization run is executed and a DRC is run to check for minor issues which might still persist in the design. An iterative loop is used to fix as many of the DRC violations as possible. If the design has hard to reach areas or unfixable violations, the design software reports them.
+
+
++ Static timing analysis
+The STA is performed to the design as a sign-off step. This step utilizes the design software and the physical properties of the design to generate timing reports, such as hold and setup timing data, which can be used to further improve the design and eliminate any timing violations persisting in the design. The reports can be observed as text reports or through an interactive GUI (Graphical user interface) of the design software. These reports include the hold and setup violator paths, which indicate which paths are critical for the design. In the future, an STA based feedback loop can be configured to iteratively fix any timing violations in the design.
+
+Here is the tool list that was used in this project work.
++ Innovus Implementation system for placement and routing.
++ Voltus power signoff for power integrity analysis.
+After doing all these steps in EDA tool (innovus), the next step is to do power signoff in voltus tool. some of the files are required for the final power signoff. here is the input and output files for voltus power signoff tools.
+
+
+
+** Power Integrity signoff
+Designers use power integrity analysis to determice if the circuits will provide the intended performance and reliability as implemented.They run full-chip electromigration(EM) and voltage (IR) drop analysis to validate that the power grid can deliver the necessary current to the devices to function as designed,and to ensure that wires will not fail prematurely because of EM.
+
+
+#+LATEX: \newpage
+
+* IR Drop
+
+A robust power distribution network is essential to ensure correct and reliable operations of modern high performance VLSI circuits[3].Power supply noise refers to the noise on power and ground distribution network which reduces effective power supply voltage levels reaching gates. High average currents cause large ohmic IR voltage drop and the current transients cause large inductive Ldi/dt ground bounce.However the more voltage drop occurs in the circuit the more power comsumption increases.
+Moreover, increasing clock speed boosts performance of system but also significantly increases power consumption. Lowering voltage reduces power consumption but can degrade peroformance. Minimizing area can increase leakage power.[good notes] IR drop and ground bounce refer to the variations in voltage caused by current flowing through a resistive power network.[4]
+
+#+CAPTION: Power noise due to the IR drop 
+#+NAME:   fig:SED-HR4005
+[[./img/wave.png]]
+
+
+** IR Drop
+
+The potential difference, or voltage drop, between two ends of a conducting wire during current flow is called IR drop (from Ohm's law: V=IR).In chips, power and ground are distributed through metal networks constituting the power delivery networks (PDNs). When current flows through the PDN, part of the voltage is dropped across the network, as per Ohm's law. This phenomenon is called IR drop.
+
+When current flow in the loop, magnetic-field line rings are created from each of the two legs. If the current in the loop changes,the number of field line rings around each half of the wire would change.Likewise, there would be a voltage created across each leg that would depend on how fast the total numberof field line rings aorund the each leg was changing.
+
+** Ground Bounce 
+Ground bounce is an increase in voltage that occurs on ground networks (VSS or GND) in integrated circuits. The current that is sourced onto the ground network combined with a finite resistance of the ground network leads to localized increases in the ground voltages around the chip. As with IR drop, these increases in the ground voltage also decrease the operating voltage of the chip, resulting in the same potential timing problems and functional failures.[4]
+
+#+CAPTION: Power distribution network resistance and current tap
+#+NAME:   fig:SED-HR4006
+[[./img/simplifiedpdn.png]]
+
+When current flow in the loop, magnetic-field line rings are created from each of the two legs.If the current in the loop changes,the number of field line rings around each half of the wire would change.Likewise, there would be a voltage created across each leg that would depend on how fast the total numberof field line rings aorund the each leg was changing.
+
+
+** Effects of IR drop
+Because the number of failures resulting from poor power-grid networks has become significant only recently, many designers do not look at power distribution as a potential source of chip failure.
+Symptoms of IR drop and ground bounce problems include the following:
++ Non-functional chips
+If the global IR drop or ground bounce is too high when a chip operates, logic gates malfunction. The failure resembles a logical functional failure or manufacturing problem, although simulation indicates that the design is logically correct. One way of diagnosing this symptom is to increase the power supply voltage and see if the chip works.
++ Intermittent or data-dependent functional failures
+Local power-grid problems are sensitized, or forced to occur, by specific operations in close proximity, such as all bits of a bus switching at once. In normal operation, the specific sensitization might not occur. However, a specific data input activates the problem. The symptom appears as a logic functional failure of that portion of the chip.
++ Intermittent or data-dependent timing failures
+Like intermittent functional failures, specific data inputs can cause IR drop or ground bounce that appears to be a timing failure. An intermittent timing failure of this type is also symptomatic of a signal net cross-coupling capacitance problem. One way of diagnosing this symptom is to decrease the clock frequency and see if the chip works.
++ Hard timing failures
+When the power-grid problems are not high enough to cause complete logic failure, the symptom can be a
+timing failure of the chip. In this case, the IR drop or ground bounce slows down the speed of the circuitry,
+causing a hard timing failure.
++ Clock signal jitter
+Experiments have shown that a 5 percent IR drop on a clock buffer can slow down its speed by up to 15
+percent.[4]
+
+** Practices to minimize IR drop
++ **PDN Design** The PDN is responsible for distributing power to different parts of the chip, so it's essential to have a well-designed PDN. A well-designed PDN should have low resistance and inductance to reduce voltage drop. The PDN should also have a sufficient number of voltage regulators to ensure all parts of the chip receive the required amount of voltage for their operation.By using EDA tool,Areas of weak power supply can be identified quickly and improved early in the design flow. [6]
+
++ **Optimizing Layout** By increasing the width of metal wires and using fewer vias in the power grid, you can reduce resistance and inductance in a PDN, which in turn reduces IR drop. Optimizing the layout and employing high-speed design guidelines can help reduce voltage drop in PDNs.
+
++ **Proper power and ground plane placement** Power and ground planes in a chip play a crucial role in reducing IR drop for sensitive analog, radio frequency (RF), and mixed-signal designs. Placing power and ground planes close to the transistors reduces the resistance and inductance in a power distribution network. This, in turn, minimizes IR-drop.
+
++  **On-chip decoupling capacitors** The use of on-chip decoupling capacitors can help minimize IR drop by providing a low-impedance path for high-frequency noise and reducing the voltage drop. These capacitors should be placed close to the power and ground pins of the transistors. Decoupling capacitors help reduce IR drop by providing a local energy source to the transistors, reducing the need for a large current from the PDN.
+
++ **IR drop analysis tools** IR drop analysis tools can help you predict and measure IR drop in your chip. These tools can provide a visual representation of voltage drop across different parts of the chip, allowing you to identify root causes for measured voltage drop and pointing to areas that need improvement.
+
+** Types of IR Drop Analysis
+The two types of IR drop are static IR drop and dynamic IR drop. 
+
+- **Static IR Drop**  
+  - Static IR drop happens when the circuit is not functioning and depends on the resistor-capacitor (RC) network of the PDN. Gate channel leakage current is mainly responsible for static IR drop.[6]
+
+- **Dynamic IR Drop**  
+  - **Vectorless**: IR drop is estimated using toggle rates or switching activity without actual simulation vectors.
+  - **Vector-based**: More accurate as it considers real switching activity using simulation vectors to analyze IR drop.
+
+** File preparation for power signoff
+In this project work, Voltus IC power integrity solution is used to run the simulation after physical design. There are some mandetory data, recommended file and optional data are  required for power integrity solution. Here is the list of files:
+
+
+The following table shows the required and optional inputs for power and IR drop analysis.
+
+
+#+LATEX: \small
+
+| Data                   | Mandatory | Details                                                                 |
+|------------------------+-----------+-------------------------------------------------------------------------|
+| Timing Libraries       | Yes       | libraries (.lib) and PVT corner for analysis.                           |
+|                        |           | TWF from STA for slews and vectorless dyn analysis.                     |
+| Verilog                | Yes       | Verilog netlist                                                         |
+| SDC                    | Yes       | SDC timing constraints file                                             |
+| LEF                    | Yes       | Tech. LEF, std. cells, IOs, memories, and IP LEF                        |
+| DEF                    | Yes       | Flattened DEF or multiple DEFs for design top level&blocks              |
+| SPEF                   | Yes       | Flattened or multiple SPEFs for top level and blocks                    |
+| Spice Subckts          | Yes       | Spice netlist for all cells in the.                                     |
+|                        |           | design along with the spice models                                      |
+| GDS                    | Yes       | Design components for standard cells, IOs, memories, and IPs            |
+| Layer map              | Yes       | For the GDS layer name, layer no for metal,vias,contact,poly.           |
+| Power pad location     | Yes       | Power and ground voltage source X/Y location file                       |
+|                        |           | All Power Domains to be analyzed and their voltages.                    |
+| Extraction tech file   | Yes       | For QRC or process file                                                 |
+| CPF                    | No        | Common Power Format file                                                |
+| Package model          | No        | Package RLC data to analyze package drop.                               |
+|                        |           | values or spice subcircuit format are supported.                        |
+| filler and decap cells | No        | Needed for decap optimization.                                          |
+| VCD or TCF or FSDB     | No        | Full VCD file for vector-based analysis.                                |
+|                        |           | Global flop activity or partial TCF/VCD with activity on flops.         |
+| LVS rule file          | No        | Calibre, Hercules, or Assura for device recognition.                    |
+| Design power           | No        | static power. Power consumption file for custom cells and IPs.          |
+| EM rules               | No        | Current limits per unit area for each process layer                     |
+|                        |           |                                                                         |
+
+Note: For layer map: For the GDS layer name, layer no for metal,vias,contact,poly,and diffusion
+
+
+#+LATEX: \normalsize
+
+#+CAPTION: Data requirements for power and IRDrop analysis
+#+NAME:   fig:SED-HR4007
+[[./img/data.png]]
+
+
+
+
+#+LATEX: \newpage
+* Focus of this work
+
+The experiment demonstrates that static voltage drop fluctuates based on variations in floorplan and powerplan parameters within a specified range. The objective is to determine the optimal Power Distribution Network (PDN) configuration. After synthesizing the behavioral code, the netlist, constraint file, power configuration, and technology library are used as inputs to the EDA tools. Ultimately, a report is generated for all parameter configurations, detailing the results.
+
+** Random Parameter Generator
+
+This bash script is designed to generate multiple TCL scripts with a set of parameters. The parameters are of two types: fixed and variable. For example, the power net voltage (1.2V) and ground net voltage (0.0V) are fixed across all generated scripts, while the widths of VDD and VSS stripes vary between scripts. The generator automatically creates multiple parameterized TCL scripts, such as setup1.tcl, setup2.tcl, and so on, with each stored in a separate directory.
+
+**Variable Parameters Included:**
+- Ring Width
+- Core to Left Distance
+- Core to Right Distance
+- Core to Top Distance
+- Core to Bottom Distance
+- Offset Distance
+- VSS Stripe Width
+- VDD Stripe Width
+- Space Between Rings
+- Ring Offset
+- Aspect Ratio
+- Core Utilization
+
+** Parameters for Physical Design
+
+Once the parameter scripts are generated with all inputs defined for the physical design, the program selects one script at random for input into the physical design tools. The chosen script is recorded in a CSV database to ensure it isn’t reused in subsequent design iterations.
+
+** Temporary Scripts
+
+The process randomly selects one parameter script from the available set. Since two sequential tools are used, the makefile generates two temporary files: `temp_innovus.tcl` for Innovus and `temp_voltus.tcl` for Voltus. After execution, the results and heatmap files are saved to their respective directories. Once this process is completed, the temporary files are automatically deleted to maintain a clean environment for future iterations.
+
+** Tools automation:MakeFile
+
+The Makefile automates the entire workflow, orchestrating each stage from floorplan parameter generation to static IR drop analysis. It simplifies the process by defining a set of build rules and dependencies, ensuring that each step is executed in the correct order.
+
+1. **Physical Design Parameter Generation**: The workflow begins with the creation of floorplan parameters for the design. Here, the Makefile invokes a bash script that generates multiple design setup scripts to initiate the physical design process. These scripts define the key physical characteristics of the design, such as layout, area, and routing constraints.
+
+2. **Constraint and Power Plan Integration**: Next, the Makefile incorporates design constraints, such as timing and area, along with power plan configurations. The place-and-route tools are then directed by the Makefile to apply these constraints, ensuring the design meets both performance and power requirements.
+
+3. **Floorplan and Power Distribution Network (PDN) Setup**: With the floorplan and power parameters in place, the Makefile triggers the necessary commands to establish the Power Distribution Network (PDN). This ensures the power delivery system is well-defined and can handle the operational requirements of the design without encountering power delivery issues.
+
+4. **Static IR Drop Analysis**: Once the PDN is established, the Makefile invokes the VOLTUS power integrity tool to conduct static IR drop analysis. This analysis assesses potential voltage drops across the power network, identifying weak spots where power delivery might be insufficient and could impact the design's performance.
+
+5. **Repetition with New Parameter Sets**: After completing the analysis for the first set of parameters, the Makefile automatically selects the next set of parameters and repeats the entire process. The results for each configuration are stored in designated directories, allowing for organized tracking of performance across multiple designs.
+
+6. **Automation of Error Handling and Report Generation**: Throughout the workflow, the Makefile manages intermediate file creation, error handling, and report generation. After each IR drop analysis, detailed reports are generated, providing insights into the design's performance under different configurations and highlighting areas for improvement.
+
+By automating all these stages, the Makefile ensures a streamlined and consistent execution, minimizing manual intervention, reducing the chance of errors, and making the entire design process more efficient and scalable.
+
+#+LATEX: \newpage
+Here is the Makefile source code:
+
+#+begin_src makefile
+
+## Default target        
+
+run:  generate_parameter clean-used repeat
+
+## Parameter file generation target
+
+clean_parameter:
+		bash ./scripts/automation_script/clean.sh
+
+generation:
+		bash ./scripts/automation_script/setup_generator_update
+
+#clean the used parameter script/inputs
+
+# Target to clean used files
+.PHONY: clean-used-parameter
+clean-used-parameter:
+	@echo "Cleaning used files: $(USED_FILES)..."
+	@rm -f $(USED_FILES) || { echo "Failed to remove $(USED_FILES)."; exit 1; }
+	@touch $(USED_FILES)
+	@echo "$(USED_FILES) has been reset."
+
+# physical design and static IRDrop analysis
+
+SHELL := /bin/bash
+SETUP_DIR := ./scripts/automation_script/generated_tcl_parameter
+USED_FILES := used_files.txt
+SETUP_FILE := $(shell comm -23 <(ls $(SETUP_DIR)/setup*.tcl | sort) <(cat 
+$(USED_FILES) 2>/dev/null | sort) | shuf -n 1)
+MAIN_TCL_SCRIPT := ./scripts/innovus_main1.tcl
+MAIN_TCL_SCRIPT2 := ./scripts/voltus_main1.tcl
+TEMP_TCL_SCRIPT := ./scripts/temp_script.tcl
+TEMP_TCL_SCRIPT2 := ./scripts/temp_script2.tcl
+$(USED_FILES):
+	touch $(USED_FILES)
+# Place and Route Target
+placeandroute: $(USED_FILES)
+	@if [ -z "$(SETUP_FILE)" ]; then \
+		echo "All setup files have been used!"; \
+		exit 1; \
+	else \
+		echo "Using setup file: $(SETUP_FILE)"; \
+		echo $(SETUP_FILE) >> $(USED_FILES); \
+		echo "Creating temporary TCL script to source both setup and main scripts..."; \
+		echo "#Sourcing setup file: $(SETUP_FILE)" > $(TEMP_TCL_SCRIPT); \
+		echo "source $(SETUP_FILE)" >> $(TEMP_TCL_SCRIPT); \
+		echo "#Sourcing main TCL script: $(MAIN_TCL_SCRIPT)" >> $(TEMP_TCL_SCRIPT); \
+		echo "source $(MAIN_TCL_SCRIPT)" >> $(TEMP_TCL_SCRIPT); \
+		innovus -nowin -overwrite -init $(TEMP_TCL_SCRIPT) -log logs/innovus_phrase1.log 
+		-cmd logs/innovus_phrase1.cmd; \
+		rm $(TEMP_TCL_SCRIPT); \
+		echo "Creating temporary TCL script to source both setup and main scripts..."; \
+		echo "#Sourcing setup file: $(SETUP_FILE)" > $(TEMP_TCL_SCRIPT2); \
+		echo "source $(SETUP_FILE)" >> $(TEMP_TCL_SCRIPT2); \
+		echo "#Sourcing main TCL script: $(MAIN_TCL_SCRIPT2)" >> $(TEMP_TCL_SCRIPT2); \
+		echo "source $(MAIN_TCL_SCRIPT2)" >> $(TEMP_TCL_SCRIPT2); \
+		voltus -nowin -overwrite -init $(TEMP_TCL_SCRIPT2) -log logs/voltus_phrase1.log 
+		-cmd logs/voltus_phrase1.cmd; \
+		rm $(TEMP_TCL_SCRIPT2); \
+	fi
+
+# Repeatation of physical design and Static 
+#IRDrop analysis for all parameter file
+
+.PHONY: repeat
+repeat:
+	@while true; do \
+		$(MAKE) placeandroute; \
+		echo "Waiting a few moments before the next iteration..."; \
+		sleep 5; \
+	done
+#+end_src
+
+#+CAPTION:Automatic Flow for multiple floorplan and its IR drop analysis of a single netlist.
+#+NAME:   fig:SED-HR4008
+[[./img/flow1.png]]
+
+
+**Link of the scripts: s_ids118/program_ml/pr/scripts/**
+
+
+#+LATEX: \newpage
+
+* Experimental Results :
+
+If the floorplan is configured with the following parameters:
+
++ set aspect_ratio_H_W .94
++ set core_utilization .65
++ set set2set 12
++ set space 14
++ set single_stripe_width 2.15
++ set single_stripe_space 3.44
++ set single_offset 56
+
+After the design process is completed, the power integrity analysis generates the corresponding reports.
+
+
+The tap current heat map.
+#+CAPTION: RISC-V (Ibex-core) tap current view.
+#+NAME:   fig:SED-HR4014
+[[./img/tc.png]]
+
+
+#+begin_src
+
+POWER NET REPORT 
+Generated Date: Wed Oct  2 04:18:39 2024
+Host Name: item0110.item.uni-bremen.de
+==============================
+POWER NET 
+==============================
+Power Net: VDD
+Voltage: 1.080
+Threshold: 0.972
+==============================
+POWER-GRID VIEW
+==============================
+Power-Grid Views Used: 254
+==============================
+POWER-GRID ATTRIBUTES
+==============================
+Total Resistor Elements: 8697
+    Please refer to ../VDD/grid.gif for more details
+Top-level Resistor Elements:8697
+Cell Library Resistor Elements: 0
+Total Number of Current Taps: 7277
+    Please refer to ../VDD/tc.gif for more details
+==============================
+IR DROP ANALYSIS
+==============================
+Layer based IR Drop Report: See Report
+Minimum, Average, Maximum IR drop: 1.079V 1.079V 1.080V
+    Please refer to ../VDD/ir_linear.gif for more details
+Total Static Current Loaded: -0.00093425266095437109A
+Number of Violations: 0
+    Please refer to ../VDD/ir_limit.gif for more details
+Minimum, Average, Maximum Vsrc Current: -0.00047810643445700407A,
+ -0.00046712633047718555A,-0.00045614622649736702A
+==============================
+EFFECTIVE RESISTANCE ANALYSIS
+==============================
+Minimum, Average, Maximum Reff: 9.81676579, 35.252958260151011, 56.8364029
+#+end_src
+
+
+#+CAPTION: RISC-V (Ibex-core) grid view (VDD) [linear].
+#+NAME:   fig:SED-HR4011
+[[./img/ir_linear.png]]
+
+** Project Data Directory Structure
+
+In this project, the **Ibex core** serves as the top-level design. The demonstration utilizes the **Cadence 45nm Library**, and the netlist is synthesized using this technology, which operates in two modes: **fast** and **slow**. After mapping the RTL file to the netlist, the design can be executed using this netlist.
+
+Five different parameter scripts were generated by a random parameter generator, named **setup1.tcl**, **setup2.tcl**, **setup3.tcl**, **setup4.tcl**, and **setup5.tcl**. The place-and-route tool will create five distinct floorplans based on these parameter scripts for the top-level design (Ibex core). Each design must progress to the routing step, after which data will be extracted for the IR drop analysis. Upon completing the routing session, the program will initiate the **Voltus** power integrity tool to finalize the process.
+
+In figure 11, here are the five different floorplans and their irdrop corresponding to the five setup files. The hotspots are showing maximum voltage drop in PDN.
+
+#+CAPTION: RISC-V (Ibex-core) five different PDN and its voltage drop. voltage drop is visualize on red spot(high Irdrop).
+#+NAME:   fig:SED-HR4015
+[[./img/Compiled_ir_linear_output.png]]
+
+
+In figure 12, the Bar chart shows, Design 2 (run_2) and Design 3 (run_3) have significantly lower IR drop values compared to other runs. This is apparent in both the average (blue) and maximum (red) IR drop bars. Specifically:
+Design 2 has the lowest maximum IR drop, with a maximum value under 1.5 mV, and its average value is also relatively low (around 1.0 mV).
+Design 3 has a maximum IR drop of around 1.5 mV, and the average is also similar to Design 2.
+
+Design 2 and Design 3, having low average and maximum IR drop values, indicate better performance in terms of power delivery compared to other designs (like Design 1, 4, and 5) which show higher maximum IR drops.
+
+#+CAPTION: Data requirements for power and IRDrop analysis
+#+NAME:   fig:SED-HR4016
+[[./img/Figure_1.png]]
+
+
+#+LATEX: \newpage
+* Conclusion: 
+To develop an effective machine learning model for power distribution network (PDN) analysis, we need a comprehensive dataset that captures a wide range of PDN configurations, each with varying performance outcomes. In this project, a **binary database** for each PDN setup is stored in its respective directory, containing data for the corresponding floorplan and power grid configuration.
+
+For training purposes, the machine learning model requires **multiple PDN designs**, each showcasing different characteristics and performance, particularly in terms of **IR drop** or  **hotspot** distribution. These PDN designs should include both **well-performing (good)** configurations and **suboptimal (bad)** configurations. This variety is essential because the model needs exposure to a broad spectrum of scenarios—ranging from efficient, robust PDNs with minimal power integrity issues to designs that exhibit significant hotspots and IR drop problems.
+
+By learning from both **good** and **bad** PDN designs, the machine learning model will be better equipped to:
+1. **Identify patterns** that differentiate high-quality designs from flawed ones.
+2. **Predict potential IR drop issues** and power hotspots in new designs based on learned patterns.
+3. **Generalize effectively**, ensuring it can handle new PDN configurations and assess their power integrity with accuracy.
+
+In summary, the availability of diverse PDN datasets—both functional and problematic—is a critical requirement for training a robust machine learning model that can predict power grid performance and assist in the optimization of future designs.
+
+**The project file ids account: s_ids118/program_ml/**
+
+
+#+LATEX: \newpage
+
+* References:
+#+print_bibliography:
+
++ [1] Dynamic Voltage (IR) Drop Analysis and Design Closure: Issues and Challenges
++ [2] Lecture: 01-15-03-DIDS(a)-V Architectures and Design Methodologies of Integrated Digital Systems (SoSe 2023)
++ [3] Identification of IR-drop Hot-spots in Defective Power  Distribution Network Using TDF ATPG
++ [4] Voltus user manual
++ [5] IncPRID:Fast learning based prediction of incremental ir drop.chia-tung
++ [6] https://www.ansys.com/blog/minimizing-ir-drop-in-integrated-circuit-design 

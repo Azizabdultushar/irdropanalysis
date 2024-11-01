@@ -1,0 +1,1 @@
+./scripts/automation_script/generated_tcl_parameter/setup6.tcl
